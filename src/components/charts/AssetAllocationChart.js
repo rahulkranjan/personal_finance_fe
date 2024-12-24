@@ -34,6 +34,7 @@ export default function AssetAllocationChart({ data }) {
   const options = {
     ...theme.options,
     responsive: true,
+    maintainAspectRatio: false, // Allow custom sizing
     plugins: {
       legend: {
         position: "right",
@@ -46,7 +47,10 @@ export default function AssetAllocationChart({ data }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+    <div
+      className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"
+      style={{ width: "450px", height: "450px" }} // Adjust chart size
+    >
       <Pie data={chartData} options={options} />
     </div>
   );

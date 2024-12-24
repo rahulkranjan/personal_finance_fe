@@ -74,10 +74,10 @@ export default function DashboardLayout({ children }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white">
-                  {user?.email?.[0]?.toUpperCase()}
+                  {user?.username?.[0]?.toUpperCase()}
                 </div>
                 <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {user?.email}
+                  {user?.username}
                 </span>
               </div>
             </div>{" "}

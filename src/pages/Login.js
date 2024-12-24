@@ -1,19 +1,39 @@
-// src/pages/Login.js
 import { useState } from "react";
+import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [credentials, setCredentials] = useState({ username: "", password: "" });
   const { login } = useAuth();
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Mock login - in real app, you'd validate credentials
-    login({
-      email: credentials.email,
-      name: "User",
-      role: "user",
-    });
+    setError("");
+
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/auth/login",
+        {
+          username: credentials.username,
+          password: credentials.password,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      login({
+        username: credentials.username,
+        name: "User",
+        role: "user",
+      });
+
+      console.log("Login successful", response.data);
+    } catch (err) {
+      console.error("Login error", err);
+      setError("Invalid username or password");
+    }
   };
 
   return (
@@ -26,13 +46,13 @@ export default function Login() {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <input
-                type="email"
+                type="text"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={credentials.email}
+                placeholder="Username"
+                value={credentials.username}
                 onChange={(e) =>
-                  setCredentials({ ...credentials, email: e.target.value })
+                  setCredentials({ ...credentials, username: e.target.value })
                 }
               />
             </div>
@@ -49,6 +69,10 @@ export default function Login() {
               />
             </div>
           </div>
+
+          {error && (
+            <p className="text-red-500 text-sm text-center mt-2">{error}</p>
+          )}
 
           <div>
             <button
