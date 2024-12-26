@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import axiosInstance from "../axiosConfig";
 
 const AuthContext = createContext();
 
@@ -12,9 +13,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/auth/check", {
-          withCredentials: true,
-        });
+        const response = await axiosInstance.get("/auth/check");
         setUser(response.data.user);
       } catch (error) {
         console.error("Error checking authentication:", error);
@@ -33,7 +32,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await axios.post("http://127.0.0.1:8000/auth/logout", {}, { withCredentials: true });
+    await axiosInstance.post("/auth/logout");
     setUser(null);
     navigate("/login");
   };
