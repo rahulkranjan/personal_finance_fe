@@ -22,7 +22,7 @@ export default function Transactions() {
     try {
       const response = await axiosInstance.get("/transactions/exchange-rate");
       const { rates, timestamp } = response.data.result;
-      const datetime = dayjs(timestamp * 1000).format('YYYY-MM-DD HH:mm:ss');
+      const datetime = dayjs(timestamp * 1000).format("YYYY-MM-DD HH:mm:ss");
       setExchangeRates(rates);
       setLastUpdated(datetime);
     } catch (error) {
@@ -89,6 +89,23 @@ export default function Transactions() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      const response = await axiosInstance.get("/transactions/report", {
+        responseType: "blob", // Ensure response is handled as a blob
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "transactions_report.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Error downloading report:", error);
+    }
+  };
+
   const handleEdit = (transaction) => {
     setCurrentTransaction(transaction);
     setFormData({
@@ -123,17 +140,22 @@ export default function Transactions() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           Transactions
         </h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Add Transaction
-        </button>
+        <div className="flex space-x-4">
+          <button
+            onClick={handleDownloadReport}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Download Report
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Add Transaction
+          </button>
+        </div>
       </div>
 
-    <div>
-      
-    </div>
       <div className="flex justify-between items-center px-4 py-2 bg-white dark:bg-gray-800">
         <div className="flex flex-wrap items-center space-x-4">
           {exchangeRates
@@ -230,6 +252,7 @@ export default function Transactions() {
         </div>
       )}
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
