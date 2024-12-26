@@ -7,10 +7,12 @@ export default function Auth() {
   const { login } = useAuth();
   const [error, setError] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+  const [loading, setLoading] = useState(false); // New loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true); // Disable button during API request
 
     const url = isSignup ? "/auth/signup" : "/auth/login";
 
@@ -27,16 +29,17 @@ export default function Auth() {
           name: "User",
           role: "user",
         });
-
         console.log("Login successful", response.data);
       } else {
         console.log("Signup successful", response.data);
-        setIsSignup(false); // Redirect to login after signup
-        setCredentials({ username: "", email: "", password: "" }); // Clear form
+        setIsSignup(false);
+        setCredentials({ username: "", email: "", password: "" });
       }
     } catch (err) {
       console.error(isSignup ? "Signup error" : "Login error", err);
       setError(isSignup ? "Signup failed. Try again." : "Invalid username or password");
+    } finally {
+      setLoading(false); // Re-enable button after response/error
     }
   };
 
@@ -95,9 +98,12 @@ export default function Auth() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading} 
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
             >
-              {isSignup ? "Sign up" : "Sign in"}
+              {loading ? "Processing..." : isSignup ? "Sign up" : "Sign in"}
             </button>
           </div>
         </form>
@@ -107,6 +113,7 @@ export default function Auth() {
             {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               type="button"
+              disabled={loading}
               onClick={() => setIsSignup(!isSignup)}
               className="text-indigo-600 hover:text-indigo-500 focus:outline-none"
             >
