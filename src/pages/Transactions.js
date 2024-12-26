@@ -1,7 +1,7 @@
 // src/pages/Transactions.js
 import { useState, useEffect } from "react";
-import axios from "axios";
 import dayjs from "dayjs";
+import axiosInstance from "../axiosConfig";
 
 
 export default function Transactions() {
@@ -15,23 +15,13 @@ export default function Transactions() {
     category: "expense",
   });
 
-  // Axios base configuration
-  const API_BASE_URL = "http://localhost:8000";
-  const axiosConfig = {
-    baseURL: API_BASE_URL,
-    withCredentials: true,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  };
 
   // Fetch transactions
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/transactions/`, {
+        const response = await axiosInstance.get('/transactions/', {
           params: { skip: 0, limit: 10 },
-          ...axiosConfig,
         });
         setTransactions(response.data);
       } catch (error) {
@@ -46,8 +36,7 @@ export default function Transactions() {
     try {
       if (currentTransaction) {
         // Update existing transaction
-        const response = await axios.put(
-          `${API_BASE_URL}/transactions/${currentTransaction.id}`,
+        const response = await axiosInstance.put(`/transactions/${currentTransaction.id}`,
           {
             ...formData,
             amount:
@@ -55,15 +44,14 @@ export default function Transactions() {
                 ? -Math.abs(formData.amount)
                 : Math.abs(formData.amount),
           },
-          axiosConfig
         );
         setTransactions((prev) =>
           prev.map((t) => (t.id === response.data.id ? response.data : t))
         );
       } else {
         // Add new transaction
-        const response = await axios.post(
-          `${API_BASE_URL}/transactions/`,
+        const response = await axiosInstance.post(
+          `/transactions/`,
           {
             ...formData,
             amount:
@@ -71,7 +59,6 @@ export default function Transactions() {
                 ? -Math.abs(formData.amount)
                 : Math.abs(formData.amount),
           },
-          axiosConfig
         );
         setTransactions((prev) => [...prev, response.data]);
       }
@@ -92,7 +79,7 @@ export default function Transactions() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/transactions/${id}`, axiosConfig);
+      await axiosInstance.delete(`/transactions/${id}`);
       setTransactions((prev) => prev.filter((t) => t.id !== id));
     } catch (error) {
       console.error("Error deleting transaction:", error);
