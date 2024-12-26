@@ -48,8 +48,8 @@ export default function AssetAllocationChart({ data }) {
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"
-      style={{ width: "450px", height: "450px" }} // Adjust chart size
+      className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow w-full max-w-xl mx-auto"
+      style={{ height: "450px" }}
     >
       <Pie data={chartData} options={options} />
     </div>

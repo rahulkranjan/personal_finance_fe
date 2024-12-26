@@ -1,7 +1,7 @@
-// src/pages/Dashboard.js
 import { useState, useEffect } from "react";
 import ExpenseTrendChart from "../components/charts/ExpenseTrendChart";
 import AssetAllocationChart from "../components/charts/AssetAllocationChart";
+import axiosInstance from "../axiosConfig";
 
 export default function Dashboard() {
   const [financeData, setFinanceData] = useState({
@@ -15,7 +15,25 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    // Mock data - replace with API call
+    const fetchSummary = async () => {
+      try {
+        const response = await axiosInstance.get("/transactions/summary");
+        setFinanceData((prevData) => ({
+          ...prevData,
+          summary: response.data,
+        }));
+      } catch (error) {
+        if (error.response?.status === 401) {
+          console.error("User not authenticated. Redirecting to login...");
+          // Handle unauthenticated state here
+        } else {
+          console.error("Error fetching summary data:", error);
+        }
+      }
+    };
+
+    fetchSummary();
+    // Mock data for trends and assets - replace with actual API calls if needed
     const mockData = {
       trends: [
         { month: "Jan", amount: 1500, income: 4000 },
@@ -32,14 +50,13 @@ export default function Dashboard() {
         { category: "Crypto", amount: 5000 },
         { category: "Bonds", amount: 15000 },
       ],
-      summary: {
-        totalIncome: 24900,
-        totalExpenses: 10100,
-        totalBalance: 14800,
-      },
     };
 
-    setFinanceData(mockData);
+    setFinanceData((prevData) => ({
+      ...prevData,
+      trends: mockData.trends,
+      assets: mockData.assets,
+    }));
   }, []);
 
   return (
@@ -48,10 +65,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">
-            Total Balance
+            Total Transactions
           </h3>
           <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-            ₹{financeData.summary.totalBalance.toLocaleString()}
+            {financeData?.summary?.total_transactions?.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -59,7 +76,7 @@ export default function Dashboard() {
             Total Income
           </h3>
           <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-            ₹{financeData.summary.totalIncome.toLocaleString()}
+            ₹{financeData.summary?.total_income?.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -67,7 +84,7 @@ export default function Dashboard() {
             Total Expenses
           </h3>
           <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-            ₹{financeData.summary.totalExpenses.toLocaleString()}
+            ₹{financeData?.summary?.total_expense?.toLocaleString()}
           </p>
         </div>
       </div>
@@ -89,7 +106,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Recent Transactions
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
           Recent Transactions
@@ -172,7 +189,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

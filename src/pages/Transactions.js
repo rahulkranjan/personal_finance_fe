@@ -1,64 +1,84 @@
 // src/pages/Transactions.js
 import { useState, useEffect } from "react";
-import { generateMockTransactions, categories } from "../utils/mockData";
+import axios from "axios";
+import dayjs from "dayjs";
+
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState(null);
   const [formData, setFormData] = useState({
-    date: "",
+    // date: "",
     description: "",
     amount: "",
-    type: "expense",
-    category: "",
+    category: "expense",
   });
 
+  // Axios base configuration
+  const API_BASE_URL = "http://localhost:8000";
+  const axiosConfig = {
+    baseURL: API_BASE_URL,
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
+  // Fetch transactions
   useEffect(() => {
-    setTransactions(generateMockTransactions());
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/transactions/`, {
+          params: { skip: 0, limit: 10 },
+          ...axiosConfig,
+        });
+        setTransactions(response.data);
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      }
+    };
+    fetchTransactions();
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentTransaction) {
-      // Update existing transaction
-      setTransactions(
-        transactions.map((t) =>
-          t.id === currentTransaction.id
-            ? {
-                ...formData,
-                id: t.id,
-                amount:
-                  formData.type === "expense"
-                    ? -Math.abs(formData.amount)
-                    : Math.abs(formData.amount),
-              }
-            : t
-        )
-      );
-    } else {
-      // Add new transaction
-      setTransactions([
-        ...transactions,
-        {
-          ...formData,
-          id: Date.now(),
-          amount:
-            formData.type === "expense"
-              ? -Math.abs(formData.amount)
-              : Math.abs(formData.amount),
-        },
-      ]);
+    try {
+      if (currentTransaction) {
+        // Update existing transaction
+        const response = await axios.put(
+          `${API_BASE_URL}/transactions/${currentTransaction.id}`,
+          {
+            ...formData,
+            amount:
+              formData.category === "expense"
+                ? -Math.abs(formData.amount)
+                : Math.abs(formData.amount),
+          },
+          axiosConfig
+        );
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === response.data.id ? response.data : t))
+        );
+      } else {
+        // Add new transaction
+        const response = await axios.post(
+          `${API_BASE_URL}/transactions/`,
+          {
+            ...formData,
+            amount:
+              formData.category === "expense"
+                ? -Math.abs(formData.amount)
+                : Math.abs(formData.amount),
+          },
+          axiosConfig
+        );
+        setTransactions((prev) => [...prev, response.data]);
+      }
+      closeModal();
+    } catch (error) {
+      console.error("Error saving transaction:", error);
     }
-    setIsModalOpen(false);
-    setCurrentTransaction(null);
-    setFormData({
-      date: "",
-      description: "",
-      amount: "",
-      type: "expense",
-      category: "",
-    });
   };
 
   const handleEdit = (transaction) => {
@@ -70,8 +90,24 @@ export default function Transactions() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setTransactions(transactions.filter((t) => t.id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/transactions/${id}`, axiosConfig);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setCurrentTransaction(null);
+    setFormData({
+      date: "",
+      description: "",
+      amount: "",
+      category: "expense",
+    });
   };
 
   return (
@@ -93,28 +129,23 @@ export default function Transactions() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Actions
-              </th>
+              {["Date", "Description", "Category", "Amount", "Actions"].map(
+                (header) => (
+                  <th
+                    key={header}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    {header}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {transactions.map((transaction) => (
               <tr key={transaction.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                  {transaction.date}
+                {dayjs(transaction.date).format("YYYY-MM-DD")}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-800 dark:text-gray-200">
                   {transaction.description}
@@ -123,8 +154,8 @@ export default function Transactions() {
                   {transaction.category}
                 </td>
                 <td
-                  className={`px-6 py-4 whitespace-nowrap font-semibold ₹{
-                    transaction.type === "income"
+                  className={`px-6 py-4 whitespace-nowrap font-semibold ${
+                    transaction.category === "income"
                       ? "text-green-600 dark:text-green-400"
                       : "text-red-600 dark:text-red-400"
                   }`}
@@ -151,121 +182,79 @@ export default function Transactions() {
         </table>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-              {currentTransaction ? "Edit Transaction" : "Add Transaction"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: e.target.value })
-                  }
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">
-                  Type
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">
-                  Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setCurrentTransaction(null);
-                    setFormData({
-                      date: "",
-                      description: "",
-                      amount: "",
-                      type: "expense",
-                      category: "",
-                    });
-                  }}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  {currentTransaction ? "Update" : "Add"}
-                </button>
-              </div>
-            </form>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
+      <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+        {currentTransaction ? "Edit Transaction" : "Add Transaction"}
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {["description", "amount"].map((field) => (
+          <div key={field}>
+            <label className="block text-gray-700 dark:text-gray-300 mb-1">
+              {field.charAt(0).toUpperCase() + field.slice(1)}
+            </label>
+            <input
+              type={field === "amount" ? "number" : "text"}
+              value={formData[field]}
+              onChange={(e) =>
+                setFormData({ ...formData, [field]: e.target.value })
+              }
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            />
           </div>
+        ))}
+        {/* <div>
+          <label className="block text-gray-700 dark:text-gray-300 mb-1">
+            Date
+          </label>
+          <input
+            type="date" // Updated type for better UI
+            value={formData.date}
+            onChange={(e) =>
+              setFormData({ ...formData, date: e.target.value })
+            }
+            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            required
+          />
+        </div> */}
+        <div>
+          <label className="block text-gray-700 dark:text-gray-300 mb-1">
+            Category
+          </label>
+          <select
+            value={formData.category}
+            onChange={(e) =>
+              setFormData({ ...formData, category: e.target.value })
+            }
+            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            required
+          >
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
         </div>
-      )}
+        <div className="flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={closeModal}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {currentTransaction ? "Update" : "Add"}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

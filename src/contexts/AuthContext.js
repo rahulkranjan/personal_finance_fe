@@ -12,33 +12,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/auth/check", {
+        const response = await axios.get("http://localhost:8000/auth/check", {
           withCredentials: true,
         });
         setUser(response.data.user);
       } catch (error) {
+        console.error("Error checking authentication:", error);
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-
+  
     checkAuth();
   }, []);
-
+  
   const login = (userData) => {
     setUser(userData);
     navigate("/dashboard");
   };
 
   const logout = async () => {
-    try {
-      await axios.post("http://127.0.0.1:8000/logout", {}, { withCredentials: true });
-      setUser(null);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    await axios.post("http://127.0.0.1:8000/auth/logout", {}, { withCredentials: true });
+    setUser(null);
+    navigate("/login");
   };
 
   return (
